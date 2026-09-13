@@ -67,3 +67,33 @@ The official 17–18 September 2026 schedule and event details included in `supa
 Before deploying V5, run `supabase-repair-v5.sql` once in Supabase SQL Editor. It repairs the earlier `event_schedule` schema mismatch and ensures the participation and attendance tables exist with RLS enabled.
 
 The local `.env` contains the publishable Supabase browser key requested for this project and is ignored by Git.
+
+## Event Authorised Accounts (V8)
+
+AquaDesk supports event-specific operational accounts. These accounts are **view-only for data editing**, have global live chat access, and can mark attendance only for their assigned event.
+
+Run `supabase-v8-final.sql` after the base schema/migrations. Then create the Auth users listed in `AUTHORIZED_USERS_SETUP.md` with the supplied password. Their `profiles` rows are mapped automatically to the correct event.
+
+### Event accounts
+
+- `CODEWAVE@NMAMIT.IN` → CodeWave
+- `LEVIATHAN@NMAMIT.IN` → Leviathan
+- `CORALCANVAS@NMAMIT.IN` → Coral Canvas
+- `AQUABYTE@NMAMIT.IN` → Aqua Byte
+- `AQUAVERSE@NMAMIT.IN` → Aquaverse
+- `MEGPITCH@NMAMIT.IN` → The Mega Pitch
+- `TIDETAILOR@NMAMIT.IN` → Tide & Tailor
+- `SUBMARINE@NMAMIT.IN` → Submarine
+- `OCEANENIGMA@NMAMIT.IN` → Ocean Enigma
+- `ABYSSARENA@NMAMIT.IN` → Abyss Arena
+
+### Analytics reset
+
+Super Admin Force Reset Statistics uses `FORCE000` and resets the analytics baseline only. It does not delete colleges, participants, events, registrations, schedules, teams, or attendance records.
+
+
+## V13 database repair
+If a database upgraded from an older AquaDesk version reports missing winner columns or `no unique or exclusion constraint matching the ON CONFLICT specification`, run `supabase-v13-final-repair.sql` once in Supabase SQL Editor. It preserves operational data and creates the exact unique key used by the winner upsert: `(event_id, placement)`.
+
+## V15.7 master timetable
+Run `supabase-schedule-master.sql` in Supabase SQL Editor. It creates the canonical `schedule_master` table and seeds all 27 timetable entries from the supplied Semaphore 2K26 brochure. Super Admin can edit every entry, including registration, inaugural ceremony, all competition slots, and valedictory.
