@@ -162,6 +162,17 @@ create table if not exists public.event_college_participation(
 );
 
 -- ------------------------------------------------------------
+-- INDIVIDUAL PARTICIPANT <-> EVENT REGISTRATION
+-- ------------------------------------------------------------
+create table if not exists public.participant_event_participation(
+  participant_id uuid not null references public.participants_public(id) on delete cascade,
+  event_id uuid not null references public.events(id) on delete cascade,
+  participating boolean not null default true,
+  updated_at timestamptz default now(),
+  primary key(participant_id,event_id)
+);
+
+-- ------------------------------------------------------------
 -- ATTENDANCE PER SCHEDULE SLOT + PARTICIPANT
 -- ------------------------------------------------------------
 create table if not exists public.attendance(
@@ -211,6 +222,8 @@ drop trigger if exists event_head_contacts_updated_at on public.event_head_conta
 create trigger event_head_contacts_updated_at before update on public.event_head_contacts for each row execute function public.set_updated_at();
 drop trigger if exists event_participation_updated_at on public.event_college_participation;
 create trigger event_participation_updated_at before update on public.event_college_participation for each row execute function public.set_updated_at();
+drop trigger if exists participant_event_updated_at on public.participant_event_participation;
+create trigger participant_event_updated_at before update on public.participant_event_participation for each row execute function public.set_updated_at();
 drop trigger if exists profiles_updated_at on public.profiles;
 create trigger profiles_updated_at before update on public.profiles for each row execute function public.set_updated_at();
 
@@ -245,12 +258,13 @@ alter table public.events enable row level security;
 alter table public.event_schedule enable row level security;
 alter table public.event_head_contacts enable row level security;
 alter table public.event_college_participation enable row level security;
+alter table public.participant_event_participation enable row level security;
 alter table public.attendance enable row level security;
 alter table public.audit_logs enable row level security;
 
 -- Remove old policies including the insecure public students policy.
 do $$ declare r record; begin
- for r in select schemaname,tablename,policyname from pg_policies where schemaname='public' and tablename in('profiles','colleges','college_contacts','college_status','students','participants_public','participant_contacts','events','event_schedule','event_head_contacts','event_college_participation','attendance','audit_logs') loop
+ for r in select schemaname,tablename,policyname from pg_policies where schemaname='public' and tablename in('profiles','colleges','college_contacts','college_status','students','participants_public','participant_contacts','events','event_schedule','event_head_contacts','event_college_participation','participant_event_participation','attendance','audit_logs') loop
   execute format('drop policy if exists %I on %I.%I',r.policyname,r.schemaname,r.tablename);
  end loop;
 end $$;
@@ -271,6 +285,7 @@ create policy "authorised event head contacts read" on public.event_head_contact
 create policy "authorised status read" on public.college_status for select to authenticated using(public.is_authorised());
 create policy "authorised participant contacts read" on public.participant_contacts for select to authenticated using(public.is_authorised());
 create policy "authorised participation read" on public.event_college_participation for select to authenticated using(public.is_authorised());
+create policy "authorised participant event read" on public.participant_event_participation for select to authenticated using(public.is_authorised());
 create policy "authorised attendance read" on public.attendance for select to authenticated using(public.is_authorised());
 
 -- AUTHORISED ATTENDANCE WRITE
@@ -287,6 +302,7 @@ create policy "admin events all" on public.events for all to authenticated using
 create policy "admin event head contacts all" on public.event_head_contacts for all to authenticated using(public.is_admin()) with check(public.is_admin());
 create policy "admin schedule all" on public.event_schedule for all to authenticated using(public.is_admin()) with check(public.is_admin());
 create policy "admin participation all" on public.event_college_participation for all to authenticated using(public.is_admin()) with check(public.is_admin());
+create policy "admin participant event all" on public.participant_event_participation for all to authenticated using(public.is_admin()) with check(public.is_admin());
 create policy "admin attendance all" on public.attendance for all to authenticated using(public.is_admin()) with check(public.is_admin());
 create policy "admin logs read" on public.audit_logs for select to authenticated using(public.is_admin());
 create policy "admin logs insert" on public.audit_logs for insert to authenticated with check(public.is_admin());
@@ -345,6 +361,8 @@ create index if not exists idx_participants_college on public.participants_publi
 create index if not exists idx_schedule_date on public.event_schedule(event_date,start_time);
 create index if not exists idx_schedule_event on public.event_schedule(event_id);
 create index if not exists idx_participation_event on public.event_college_participation(event_id);
+create index if not exists idx_participant_event_participant on public.participant_event_participation(participant_id);
+create index if not exists idx_participant_event_event on public.participant_event_participation(event_id);
 create index if not exists idx_attendance_schedule on public.attendance(schedule_id);
 create index if not exists idx_audit_created on public.audit_logs(created_at desc);
 
@@ -455,6 +473,7 @@ order by u.email;
 -- REQUIRED PRIVILEGES FOR PRIVATE EVENT HEAD CONTACTS
 -- ============================================================
 grant select on public.event_head_contacts to authenticated;
+grant select, insert, update, delete on public.participant_event_participation to authenticated;
 grant insert, update, delete on public.event_head_contacts to authenticated;
 
 -- ============================================================
