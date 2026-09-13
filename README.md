@@ -62,8 +62,3 @@ npm run build
 ## Schedule source
 
 The official 17–18 September 2026 schedule and event details included in `supabase.sql` are based on the supplied Semaphore 2K26 PDF. The Super Admin can edit all seeded records after setup.
-
-## V5 deployment fix
-Before deploying V5, run `supabase-repair-v5.sql` once in Supabase SQL Editor. It repairs the earlier `event_schedule` schema mismatch and ensures the participation and attendance tables exist with RLS enabled.
-
-The local `.env` contains the publishable Supabase browser key requested for this project and is ignored by Git.
